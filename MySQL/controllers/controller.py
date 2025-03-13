@@ -70,8 +70,8 @@ def get_person_with_details(db: Session, person_id: int):
             "loan_intent": loan.loan_intent,
             "loan_status": loan.loan_status,
             "loan_financials": {
-                "interest_rate": loan_financials.interest_rate,
-                "percent_income": loan_financials.percent_income,
+                "interest_rate": loan_financials.interest_rate if loan_financials else None,
+                "percent_income": loan_financials.percent_income if loan_financials else None,
             }
         })
 
