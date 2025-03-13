@@ -9,7 +9,7 @@ from fastapi import HTTPException
 def create_person_with_details(db: Session, person_data: PersonCreate):
     """Creates a new person along with their loan, financials, and credit history."""
     
-    # Create Person instance
+   # Create Person instance
     new_person = Person(
         age=person_data.person_age,
         gender=person_data.person_gender,
@@ -18,9 +18,6 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         emp_exp=person_data.person_emp_exp,
         home_ownership=person_data.person_home_ownership,
     )
-    db.add(new_person)
-    db.commit()
-    db.refresh(new_person)
 
     # Create Loan instance
     new_loan = Loan(
@@ -29,9 +26,6 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         loan_intent=person_data.loan_intent,
         loan_status=person_data.loan_status,
     )
-    db.add(new_loan)
-    db.commit()
-    db.refresh(new_loan)
 
     # Create Loan Financials instance
     new_loan_financials = LoanFinancials(
@@ -39,9 +33,6 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         interest_rate=person_data.loan_int_rate,
         percent_income=person_data.loan_percent_income,
     )
-    db.add(new_loan_financials)
-    db.commit()
-    db.refresh(new_loan_financials)
 
     # Create Credit History instance
     new_credit_history = CreditHistory(
@@ -50,9 +41,11 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         cred_hist_length=person_data.cb_person_cred_hist_length,
         previous_defaults=person_data.previous_loan_defaults_on_file,
     )
-    db.add(new_credit_history)
+
+    # Add all at once and commit in one transaction
+    db.add_all([new_person, new_loan, new_loan_financials, new_credit_history])
     db.commit()
-    db.refresh(new_credit_history)
+    db.refresh(new_person)
 
     return {
         "message": "Person and associated records created successfully",
