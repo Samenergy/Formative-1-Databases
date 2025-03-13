@@ -85,9 +85,9 @@ def get_person_with_details(db: Session, person_id: int):
         "home_ownership": person.home_ownership,
         "loans": loan_data,
         "credit_history": {
-            "credit_score": credit_history.credit_score,
-            "cred_hist_length": credit_history.cred_hist_length,
-            "previous_defaults": credit_history.previous_defaults
+            "credit_score": credit_history.credit_score if credit_history else None,
+            "cred_hist_length": credit_history.cred_hist_length if credit_history else None,
+            "previous_defaults": credit_history.previous_defaults if credit_history else None
         }
     }
 
