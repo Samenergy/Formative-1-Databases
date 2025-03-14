@@ -51,6 +51,6 @@ Implemented CRUD API endpoints for the **relational database**:
    ```
 
 ## **Contributors**  
-- **[Team Member 1]** - MongoDB Implementation  
-- **[Team Member 2]** - API Development  
-- **[Team Member 3]** - Fetch & Prediction  
+- **[Samuel Dushime]** - MongoDB Implementation  
+- **[Juliana Crystal Holder]** - API Development  
+- **[Jules Gatete]** - Fetch & Prediction  
