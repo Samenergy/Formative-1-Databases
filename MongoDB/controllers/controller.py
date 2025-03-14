@@ -1,5 +1,13 @@
 from config.db import database
 from bson import ObjectId
+import numpy as np
+from pymongo import MongoClient
+import pickle
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from config.db import collection
+from models.predict import LoanApplication
+from pydantic import BaseModel
 
 person_collection = database["persons"]
 loan_collection = database["loans"]
@@ -149,3 +157,72 @@ async def delete_person(person_id: str):
     except Exception as e:
         return {"error": str(e)}
 
+
+# Load the model, scaler, and label encoder
+model = load_model('/Users/samenergy/Documents/Projects/Databases_P13/Model/loan_approval_model.h5')
+
+with open('/Users/samenergy/Documents/Projects/Databases_P13/Model/scaler.pkl', 'rb') as f:
+    scaler = pickle.load(f)
+
+with open('/Users/samenergy/Documents/Projects/Databases_P13/Model/label_encoder.pkl', 'rb') as f:
+    label_encoder = pickle.load(f)
+
+# Define Pydantic model for input validation
+class LoanApplication(BaseModel):
+    person_age: int
+    person_gender: str
+    person_education: str
+    person_income: float
+    person_emp_exp: float
+    person_home_ownership: str
+    loan_amnt: float
+    loan_intent: str
+    loan_int_rate: float
+    loan_percent_income: float
+    cb_person_cred_hist_length: int
+    credit_score: float
+    previous_loan_defaults_on_file: int
+
+def predict_loan_status(loan: LoanApplication):
+    # Convert input data into a list
+    input_data = [
+        loan.person_age,
+        loan.person_gender,
+        loan.person_education,
+        loan.person_income,
+        loan.person_emp_exp,
+        loan.person_home_ownership,
+        loan.loan_amnt,
+        loan.loan_intent,
+        loan.loan_int_rate,
+        loan.loan_percent_income,
+        loan.cb_person_cred_hist_length,
+        loan.credit_score,
+        loan.previous_loan_defaults_on_file
+    ]
+    
+    # Encode categorical variables
+    encoded_data = []
+    for feature in input_data:
+        if isinstance(feature, str):
+            if feature in label_encoder.classes_:
+                encoded_data.append(label_encoder.transform([feature])[0])
+            else:
+                encoded_data.append(label_encoder.transform([label_encoder.classes_[0]])[0])  
+        else:
+            encoded_data.append(feature)
+    
+    # Convert to numpy array and scale
+    input_data = np.array(encoded_data).reshape(1, -1)
+    input_data = scaler.transform(input_data)
+
+    # Predict the loan status
+    prediction = model.predict(input_data)
+    result = "Loan Approved" if prediction[0] > 0.5 else "Loan Rejected"
+
+    # Store in MongoDB
+    loan_data = loan.dict()
+    loan_data["loan_status"] = result
+    collection.insert_one(loan_data)  # Insert into MongoDB collection
+
+    return {"loan_status": result}

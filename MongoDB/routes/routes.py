@@ -2,6 +2,9 @@ from fastapi import APIRouter, HTTPException
 from controllers.controller import create_all_models, get_person, update_person, delete_person
 from pydantic import BaseModel
 from typing import Optional
+from pydantic import BaseModel
+from models.predict import LoanApplication
+from controllers.controller import predict_loan_status
 
 router = APIRouter()
 
@@ -65,3 +68,8 @@ async def crud_delete_person(person_id: str):
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
+
+
+@router.post("/predict")
+async def predict(loan: LoanApplication):
+    return predict_loan_status(loan)

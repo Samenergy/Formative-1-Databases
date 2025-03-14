@@ -9,3 +9,4 @@ DB_MONGO_NAME     = os.getenv("DB_MONGO_NAME")
 
 client = AsyncIOMotorClient(MONGO_URI)
 database = client[DB_MONGO_NAME]
+collection = database["loan_predictions"]  
