@@ -9,7 +9,7 @@ from fastapi import HTTPException
 def create_person_with_details(db: Session, person_data: PersonCreate):
     """Creates a new person along with their loan, financials, and credit history."""
     
-   # Create Person instance
+    # Create Person instance
     new_person = Person(
         age=person_data.person_age,
         gender=person_data.person_gender,
@@ -18,6 +18,9 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         emp_exp=person_data.person_emp_exp,
         home_ownership=person_data.person_home_ownership,
     )
+    db.add(new_person)
+    db.commit()
+    db.refresh(new_person)
 
     # Create Loan instance
     new_loan = Loan(
@@ -26,6 +29,9 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         loan_intent=person_data.loan_intent,
         loan_status=person_data.loan_status,
     )
+    db.add(new_loan)
+    db.commit()
+    db.refresh(new_loan)
 
     # Create Loan Financials instance
     new_loan_financials = LoanFinancials(
@@ -33,19 +39,26 @@ def create_person_with_details(db: Session, person_data: PersonCreate):
         interest_rate=person_data.loan_int_rate,
         percent_income=person_data.loan_percent_income,
     )
+    db.add(new_loan_financials)
+    db.commit()
+    db.refresh(new_loan_financials)
+
+    # Validate and process previous_defaults value
+    previous_defaults = person_data.previous_loan_defaults_on_file
+    if previous_defaults not in ["Yes", "No"]:
+        # Default to "No" if an invalid value is provided
+        previous_defaults = "No"
 
     # Create Credit History instance
     new_credit_history = CreditHistory(
         person_id=new_person.id,
         credit_score=person_data.credit_score,
         cred_hist_length=person_data.cb_person_cred_hist_length,
-        previous_defaults=person_data.previous_loan_defaults_on_file,
+        previous_defaults=previous_defaults,
     )
-
-    # Add all at once and commit in one transaction
-    db.add_all([new_person, new_loan, new_loan_financials, new_credit_history])
+    db.add(new_credit_history)
     db.commit()
-    db.refresh(new_person)
+    db.refresh(new_credit_history)
 
     return {
         "message": "Person and associated records created successfully",
@@ -70,8 +83,8 @@ def get_person_with_details(db: Session, person_id: int):
             "loan_intent": loan.loan_intent,
             "loan_status": loan.loan_status,
             "loan_financials": {
-                "interest_rate": loan_financials.interest_rate if loan_financials else None,
-                "percent_income": loan_financials.percent_income if loan_financials else None,
+                "interest_rate": loan_financials.interest_rate,
+                "percent_income": loan_financials.percent_income,
             }
         })
 
@@ -85,9 +98,9 @@ def get_person_with_details(db: Session, person_id: int):
         "home_ownership": person.home_ownership,
         "loans": loan_data,
         "credit_history": {
-            "credit_score": credit_history.credit_score if credit_history else None,
-            "cred_hist_length": credit_history.cred_hist_length if credit_history else None,
-            "previous_defaults": credit_history.previous_defaults if credit_history else None
+            "credit_score": credit_history.credit_score,
+            "cred_hist_length": credit_history.cred_hist_length,
+            "previous_defaults": credit_history.previous_defaults
         }
     }
 
@@ -130,13 +143,18 @@ def update_person(db: Session, person_id: int, person_data: PersonCreate):
     if credit_history:
         credit_history.credit_score = person_data.credit_score
         credit_history.cred_hist_length = person_data.cb_person_cred_hist_length
-        credit_history.previous_defaults = person_data.previous_loan_defaults_on_file
+        
+        # Validate and process previous_defaults value
+        previous_defaults = person_data.previous_loan_defaults_on_file
+        if previous_defaults not in ["Yes", "No"]:
+            # Default to "No" if an invalid value is provided
+            previous_defaults = "No"
+            
+        credit_history.previous_defaults = previous_defaults
         db.commit()
         db.refresh(credit_history)
 
     return {"message": f"Person with ID {person_id} updated successfully"}
-
-
 
 def delete_person(db: Session, person_id: int):
     """Deletes a person and all related records."""
