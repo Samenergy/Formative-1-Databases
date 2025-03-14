@@ -4,7 +4,7 @@ from routes.routes import router as crud_router
 app = FastAPI()
 
 # Include the routes
-app.include_router(crud_router, tags=["CRUD Operations"])
+app.include_router(crud_router, tags=["CRUD Operations and Predictions in MongoDB"])
 
 @app.get("/")
 async def root():
