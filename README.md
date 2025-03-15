@@ -119,3 +119,4 @@ This project implements a comprehensive loan management system with both SQL (My
 
 ## **Dataset**
 The project uses a loan dataset (loan_data.csv) with applicant details, loan information, and approval status for training the machine learning model.
+Source: [Kaggle - Loan Approval Classification Dataset](https://www.kaggle.com/datasets/taweilo/loan-approval-classification-data?resource=download)
