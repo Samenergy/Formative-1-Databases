@@ -2,12 +2,16 @@ from config.db import database
 from bson import ObjectId
 import numpy as np
 from pymongo import MongoClient
-import pickle
 import tensorflow as tf
 from tensorflow.keras.models import load_model
+from sklearn.preprocessing import LabelEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from config.db import collection
 from models.predict import LoanApplication
 from pydantic import BaseModel
+import joblib
+import pandas as pd 
 
 person_collection = database["persons"]
 loan_collection = database["loans"]
@@ -158,14 +162,9 @@ async def delete_person(person_id: str):
         return {"error": str(e)}
 
 
-# Load the model, scaler, and label encoder
-model = load_model('/Users/samenergy/Documents/Projects/Databases_P13/Model/loan_approval_model.h5')
-
-with open('/Users/samenergy/Documents/Projects/Databases_P13/Model/scaler.pkl', 'rb') as f:
-    scaler = pickle.load(f)
-
-with open('/Users/samenergy/Documents/Projects/Databases_P13/Model/label_encoder.pkl', 'rb') as f:
-    label_encoder = pickle.load(f)
+# Load the pre-trained model and preprocessor
+model = load_model('/Users/samenergy/Documents/Projects/Formative-1-Databases/Model/loan_prediction_model.h5')  # Adjust the path to where your model is saved
+preprocessor = joblib.load('/Users/samenergy/Documents/Projects/Formative-1-Databases/Model/preprocessor.pkl')  # Load the saved preprocessor
 
 # Define Pydantic model for input validation
 class LoanApplication(BaseModel):
@@ -183,6 +182,7 @@ class LoanApplication(BaseModel):
     credit_score: float
     previous_loan_defaults_on_file: int
 
+# Prediction function
 def predict_loan_status(loan: LoanApplication):
     # Convert input data into a list
     input_data = [
@@ -201,23 +201,17 @@ def predict_loan_status(loan: LoanApplication):
         loan.previous_loan_defaults_on_file
     ]
     
-    # Encode categorical variables
-    encoded_data = []
-    for feature in input_data:
-        if isinstance(feature, str):
-            if feature in label_encoder.classes_:
-                encoded_data.append(label_encoder.transform([feature])[0])
-            else:
-                encoded_data.append(label_encoder.transform([label_encoder.classes_[0]])[0])  
-        else:
-            encoded_data.append(feature)
-    
-    # Convert to numpy array and scale
-    input_data = np.array(encoded_data).reshape(1, -1)
-    input_data = scaler.transform(input_data)
+    # Apply preprocessing (one-hot encoding and standard scaling)
+    input_df = pd.DataFrame([input_data], columns=['person_age', 'person_gender', 'person_education', 'person_income', 
+                                                  'person_emp_exp', 'person_home_ownership', 'loan_amnt', 'loan_intent', 
+                                                  'loan_int_rate', 'loan_percent_income', 'cb_person_cred_hist_length', 
+                                                  'credit_score', 'previous_loan_defaults_on_file'])
+
+    # Apply the preprocessor
+    X_input = preprocessor.transform(input_df)
 
     # Predict the loan status
-    prediction = model.predict(input_data)
+    prediction = model.predict(X_input)
     result = "Loan Approved" if prediction[0] > 0.5 else "Loan Rejected"
 
     # Store in MongoDB
