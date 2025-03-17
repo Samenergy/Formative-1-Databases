@@ -163,7 +163,7 @@ async def delete_person(person_id: str):
 
 
 # Load the pre-trained model and preprocessor
-model = load_model('/Users/samenergy/Documents/Projects/Formative-1-Databases/Model/loan_prediction_model.h5')  # Adjust the path to where your model is saved
+model = load_model('/Users/samenergy/Documents/Projects/Formative-1-Databases/Model/loan_prediction_model.keras')  # Adjust the path to where your model is saved
 preprocessor = joblib.load('/Users/samenergy/Documents/Projects/Formative-1-Databases/Model/preprocessor.pkl')  # Load the saved preprocessor
 
 # Define Pydantic model for input validation
